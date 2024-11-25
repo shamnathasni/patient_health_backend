@@ -1,25 +1,41 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require("cors")
-require('dotenv').config(); 
-const app = express();
+import axios from "axios";
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({extended:true}))
-
-app.use(cors({
-    origin:"https://patienthealth.netlify.app/"
-}));
-  
-
-const db_config =require("./config/db_config")
-
-
-const route = require("./routes/route");
-app.use(route);
-
-const PORT = 5000;
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+const axiosInstance = axios.create({
+  baseURL: 'https://patient-health-backend.onrender.com', // Backend URL
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true, // Include cookies if required by backend
 });
+
+// Add a request interceptor
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token"); // Retrieve token from local storage
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`; // Add token to headers
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add a response interceptor
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Log error details for debugging
+    if (error.response) {
+      console.error("Error Response:", error.response.data);
+      console.error("Error Status:", error.response.status);
+      console.error("Error Headers:", error.response.headers);
+    } else {
+      console.error("Error Message:", error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default axiosInstance;
